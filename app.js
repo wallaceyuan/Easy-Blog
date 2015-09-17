@@ -6,7 +6,7 @@ var querystring = require('querystring');
 var mime = require('mime');// npm install mime
 var session = {};//会话数据存放的位置
 var now = Date.now();
-var users = new Array();
+var users;
 var KEY = 'user_zfpx';
 
 http.createServer(function (req, res) {
@@ -17,13 +17,11 @@ http.createServer(function (req, res) {
 
     if(pathname == '/favicon.ico'){
         res.end('404');
-    }else if(pathname == '/'){
-        fs.createReadStream('./reg.html').pipe(res);
-    }else if(pathname == '/reg') {
+    }else if(pathname == '/'||pathname == '/reg'){
         if(req.method == 'POST'){
             var form = new formidable.IncomingForm();
             form.parse(req, function (err, fields, files) {
-                users.push({username: fields.username, 'password': fields.password});
+                users={username: fields.username, 'password': fields.password};
                 res.statusCode=302;  //
                 res.setHeader("Location","/login");
                 res.end();
@@ -35,7 +33,6 @@ http.createServer(function (req, res) {
                 if(!sessionObj){
                     fs.createReadStream('./reg.html').pipe(res);
                 }else{
-                    res.writeHead(304, {"Content-Type": "text/html;charset=utf-8"});
                     res.end('已经登录');
                 }
             }else{
@@ -46,20 +43,18 @@ http.createServer(function (req, res) {
         if(req.method == 'POST'){
             var form = new formidable.IncomingForm();
             form.parse(req, function (err, fields, files) {
-                users.forEach(function(user){
-                    if(user.username == fields.username && user.password == fields.password){
-                        var sessionObj = {username:fields.username,password:fields.password};
-                        var sessionId = now+'_'+Math.random();//给用户购物卡号
-                        session[sessionId] = sessionObj;
-                        res.writeHead(200, {
-                            'Set-Cookie': KEY+"=" + sessionId,
-                            'Content-Type': 'text/html'
-                        });
-                        res.end("<div class='wrapper'><a href='/home'> home</a></div>");
-                    }else{
-                        res.end("<div class='wrapper'><a href='/login'> login</a></div>");
-                    }
-                });
+                if(users.username == fields.username && users.password == fields.password){
+                    var sessionObj = {username:fields.username,password:fields.password};
+                    var sessionId = now+'_'+Math.random();//给用户购物卡号
+                    session[sessionId] = sessionObj;
+                    res.writeHead(200, {
+                        'Set-Cookie': KEY+"=" + sessionId,
+                        'Content-Type': 'text/html'
+                    });
+                    res.end("<div class='wrapper'><a href='/home'> home</a></div>");
+                }else{
+                    res.end("<div class='wrapper'><a href='/login'> login</a><a href='/reg'> reg</a></div>");
+                }
             });
         }else{
             if(cookieObj[KEY]){
@@ -68,7 +63,6 @@ http.createServer(function (req, res) {
                 if(!sessionObj){
                     fs.createReadStream('./login.html').pipe(res);
                 }else{
-                    res.writeHead(304, {"Content-Type": "text/html;charset=utf-8"});
                     res.end('已经登录');
                 }
             }else{
